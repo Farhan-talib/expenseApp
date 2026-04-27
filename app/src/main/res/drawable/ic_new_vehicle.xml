@@ -1,0 +1,70 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Car body -->
+    <path
+        android:fillColor="#D32F2F"
+        android:pathData="
+            M3,11
+            L5,6
+            C5.2,5.4 5.8,5 6.5,5
+            H17.5
+            C18.2,5 18.8,5.4 19,6
+            L21,11
+            V17
+            C21,17.6 20.6,18 20,18
+            H19
+            C18.4,18 18,17.6 18,17
+            V16
+            H6
+            V17
+            C6,17.6 5.6,18 5,18
+            H4
+            C3.4,18 3,17.6 3,17
+            Z"/>
+
+    <!-- Windows -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M6.5,7
+            H17.5
+            L18.5,10
+            H5.5
+            Z"/>
+
+    <!-- Left wheel -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M7,15
+            A1.5,1.5 0 1,1 6.99,15 Z"/>
+
+    <!-- Right wheel -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M17,15
+            A1.5,1.5 0 1,1 16.99,15 Z"/>
+
+    <!-- Add badge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M18,3
+            A3,3 0 1,1 17.99,3 Z"/>
+
+    <!-- Plus sign -->
+    <path
+        android:strokeColor="#D32F2F"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="
+            M18,4.5
+            V7.5
+            M16.8,6
+            H19.2"/>
+</vector>

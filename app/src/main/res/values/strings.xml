@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Sagar Expense</string>
+    <string-array name="expense_types">
+        <item>Select Expense</item>
+        <item>Freight / Transport Inward</item>
+        <item>Freight / Transport Outward</item>
+        <item>Loading / Unloading Charges</item>
+        <item>Labour Charges</item>
+        <item>Packing Material</item>
+        <item>Vehicle Fuel (Petrol/Diesel/CNG)</item>
+        <item>Conveyance Expenses (Driver/Helper)</item>
+        <item>Vehicle Repair &amp; Maintenance</item>
+        <item>Vehicle Insurance</item>
+        <item>RTO / Challan / Fine</item>
+        <item>Fastag / Toll Charges</item>
+        <item>Office Expenses</item>
+        <item>Stationery &amp; Printing</item>
+        <item>Bonus / Incentive</item>
+        <item>Staff Welfare</item>
+        <item>Delivery Charges</item>
+        <item>Packing Expenses</item>
+        <item>Commission</item>
+        <item>Advertisement</item>
+        <item>Sales Promotion Expenses</item>
+        <item>Mobile Recharge</item>
+        <item>Internet / WiFi</item>
+        <item>Travelling Expenses</item>
+        <item>Miscellaneous Expenses (Other Exp)</item>
+    </string-array>
+</resources>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#F5F5F5"
+    tools:context=".ExpenserDashboard">
+
+    <!-- 👤 USER DETAILS CARD -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFFFFF"
+        android:padding="12dp"
+        android:elevation="4dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/txtUserID"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User ID: 123"
+            android:textSize="14sp"/>
+
+        <TextView
+            android:id="@+id/txtUserName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User Name: Farhan"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/txtGodown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Godown: Delhi Main"
+            android:textSize="14sp"/>
+
+    </LinearLayout>
+
+    <!-- ⏰ LIVE CLOCK -->
+    <TextClock
+        android:id="@+id/txtClock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:format12Hour="dd MMM yyyy  hh:mm:ss a"
+        android:format24Hour="dd MMM yyyy  HH:mm:ss"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- 🔴 TOTAL EXPENSE (TOP PRIORITY) -->
+    <TextView
+        android:id="@+id/txtTotalExpense"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="₹ 0.00"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:textColor="#D32F2F"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- 📌 ACTION BUTTONS -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/btnNewEntry"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="New Expense Entry"
+            android:layout_marginBottom="10dp"
+            android:backgroundTint="#1976D2"
+            android:textColor="#FFFFFF"
+            android:onClick="ExpNewEntry"/>
+
+        <Button
+            android:id="@+id/btnViewReport"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="View Expense Report"
+            android:layout_marginBottom="10dp"
+            android:backgroundTint="#388E3C"
+            android:textColor="#FFFFFF"
+            android:onClick="ExpViewReport"/>
+
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Logout"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFFFFF"
+            android:onClick="ExpLogout"/>
+
+    </LinearLayout>
+
+</LinearLayout>
