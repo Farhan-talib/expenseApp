@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "in.co.sagarfood.sagarexpense"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -42,6 +42,9 @@ android {
 }
 
 dependencies {
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
+    implementation("com.itextpdf:itext7-core:7.2.5")
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

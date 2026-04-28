@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10sp"
+            android:text="New Income Entry"
+            android:textAlignment="center"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="@color/white"
+            android:background="@color/green"/>
+        <!-- Date -->
+        <EditText
+            android:id="@+id/etIncomeDate"
+            android:hint="Income Date"
+            android:focusable="false"
+            android:drawableEnd="@android:drawable/ic_menu_today"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:padding="10dp"
+            android:background="@drawable/rounded_input"/>
+
+        <!-- Amount -->
+        <EditText
+            android:id="@+id/etAmount"
+            android:hint="Amount"
+            android:inputType="numberDecimal"
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:background="@drawable/rounded_input"/>
+
+        <!-- Remarks -->
+        <EditText
+            android:id="@+id/etRemarks"
+            android:hint="Remarks"
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:background="@drawable/rounded_input"/>
+
+        <!-- Godown -->
+        <Spinner
+            android:id="@+id/spGodown"
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:background="@drawable/rounded_input"/>
+
+        <!-- Submit -->
+        <Button
+            android:id="@+id/btnSubmit"
+            android:text="Save Income"
+            android:layout_marginTop="20dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+</ScrollView>

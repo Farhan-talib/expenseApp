@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
                                 user.setGodownNo(jsonResponse.getInt("godownNo"));
                                 user.setGodownName(jsonResponse.getString("godownName"));
                                 user.setTtlExpense(jsonResponse.getDouble("ttlExp"));
+                                user.setTtlIncome(jsonResponse.getDouble("ttlInc"));
 
                                 //System.out.println(response.toString());
 
@@ -116,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
                                 editor.putInt("godownNo", user.getGodownNo());
                                 editor.putString("godownName", user.getGodownName());
                                 editor.putFloat("ttlExpense", (float) user.getTtlExpense());
+                                editor.putFloat("ttlIncome", (float) user.getTtlIncome());
                                 editor.apply();
 
                                 if(user.getUsertype().equals("ADMIN")) {

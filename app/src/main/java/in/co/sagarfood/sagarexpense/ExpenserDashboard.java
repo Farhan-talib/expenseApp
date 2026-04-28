@@ -46,19 +46,6 @@ public class ExpenserDashboard extends AppCompatActivity {
         String godown = prefs.getString("godownName", "N/A");
 
         float totalExpense = prefs.getFloat("ttlExpense", 0f);
-        //String savedDate = prefs.getString("ExpenseDate", "");
-
-        String todayDate = getTodayDate();
-
-        // 🔥 Critical logic: reset expense if new day
-//        if (!todayDate.equals(savedDate)) {
-//            totalExpense = 0f;
-//
-//            SharedPreferences.Editor editor = prefs.edit();
-//            editor.putFloat("TodayExpense", 0f);
-//            editor.putString("ExpenseDate", todayDate);
-//            editor.apply();
-//        }
 
         // Set values
         txtUserID.setText("User ID: " + userId);
@@ -66,6 +53,17 @@ public class ExpenserDashboard extends AppCompatActivity {
         txtGodown.setText("Godown: " + godown);
 
         txtTotalExpense.setText("₹ " + String.format(Locale.getDefault(), "%.2f", totalExpense));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadDashboardData();
+    }
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        loadDashboardData();
     }
 
     private String getTodayDate() {
@@ -76,6 +74,7 @@ public class ExpenserDashboard extends AppCompatActivity {
         startActivity(new Intent(ExpenserDashboard.this, NewExpenseEntry.class));
     }
     public void ExpViewReport(View v){
+        startActivity(new Intent(ExpenserDashboard.this, GetExpenses.class));
     }
     public void ExpLogout(View v){
         //sharedPreferences = getSharedPreferences("YourPrefName", MODE_PRIVATE);
@@ -88,4 +87,5 @@ public class ExpenserDashboard extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
+
 }

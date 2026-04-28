@@ -192,8 +192,8 @@ public class NewExpenseEntry extends AppCompatActivity {
         int width = image.getWidth();
         int height = image.getHeight();
 
-        int maxWidth = 800;
-        int maxHeight = 800;
+        int maxWidth = 1000;
+        int maxHeight = 1000;
 
         float ratio = Math.min((float) maxWidth / width, (float) maxHeight / height);
 
@@ -260,8 +260,7 @@ public class NewExpenseEntry extends AppCompatActivity {
             if (bitmap != null) {
                 base64Image = convertToBase64(bitmap);
             } else {
-                toast("Upload bill");
-                return;
+                base64Image = "None";
             }
 
             JSONObject json = new JSONObject();
