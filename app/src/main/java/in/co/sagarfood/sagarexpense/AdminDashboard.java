@@ -15,8 +15,8 @@ import java.util.Locale;
 
 public class AdminDashboard extends AppCompatActivity {
 
-    TextView txtAdminID, txtAdminName, txtGodown;
-    TextView txtTodayExpense, txtTodayIncome;
+    TextView txtAdminID, txtAdminName;
+    TextView txtTodayExpense, txtTodayIncome, txtTodayStatement;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,9 +31,9 @@ public class AdminDashboard extends AppCompatActivity {
 
         txtAdminID = findViewById(R.id.txtAdminID);
         txtAdminName = findViewById(R.id.txtAdminName);
-        txtGodown = findViewById(R.id.txtGodown);
         txtTodayExpense = findViewById(R.id.txtTodayExpense);
         txtTodayIncome = findViewById(R.id.txtTodayIncome);
+        txtTodayStatement = findViewById(R.id.txtTodayStatement);
 
         loadAdminData();
         setupButtons();
@@ -53,8 +53,21 @@ public class AdminDashboard extends AppCompatActivity {
         txtAdminID.setText("Admin ID: " + adminID);
         txtAdminName.setText("Admin Name: " + adminName);
 
+        double PaL = todayIncome - todayExpense;
+
         txtTodayExpense.setText("Today's Expense: ₹ " + String.format(Locale.getDefault(), "%.2f", todayExpense));
         txtTodayIncome.setText("Today's Income: ₹ " + String.format(Locale.getDefault(), "%.2f", todayIncome));
+        if(PaL>=0){
+            txtTodayStatement.setText("Today Profit: ₹ " + String.format(Locale.getDefault(), "%.2f", PaL));
+            txtTodayStatement.setBackgroundColor(getResources().getColor(R.color.green));
+            txtTodayStatement.setTextColor(getResources().getColor(R.color.white));
+        }
+        else if(PaL<0){
+            PaL  = todayExpense - todayIncome;
+            txtTodayStatement.setText("Today Loss: ₹ " + String.format(Locale.getDefault(), "%.2f", PaL));
+            txtTodayStatement.setBackgroundColor(getResources().getColor(R.color.red));
+            txtTodayStatement.setTextColor(getResources().getColor(R.color.white));
+        }
     }
     private void setupButtons() {
 
@@ -62,17 +75,17 @@ public class AdminDashboard extends AppCompatActivity {
             startActivity(new Intent(this, AddIncomeActivity.class));
         });
 
-//        findViewById(R.id.btnIncomeReport).setOnClickListener(v -> {
-//            startActivity(new Intent(this, IncomeReportActivity.class));
-//        });
+        findViewById(R.id.btnIncomeReport).setOnClickListener(v -> {
+            startActivity(new Intent(this, GetIncomes.class));
+        });
 
         findViewById(R.id.btnApproveExpenses).setOnClickListener(v -> {
             startActivity(new Intent(this, UnApprovedExpList.class));
         });
 
-//        findViewById(R.id.btnExpenseReport).setOnClickListener(v -> {
-//            startActivity(new Intent(this, ExpenseReportActivity.class));
-//        });
+        findViewById(R.id.btnExpenseReport).setOnClickListener(v -> {
+            startActivity(new Intent(this, GetExpenses.class));
+        });
 
         findViewById(R.id.btnLogout).setOnClickListener(v -> logout());
     }

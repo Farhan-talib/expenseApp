@@ -19,6 +19,9 @@
         android:theme="@style/Theme.SagarExpense"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".GetIncomes"
+            android:exported="false" />
+        <activity
             android:name=".UnApprovedExpList"
             android:exported="false" />
         <activity

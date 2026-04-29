@@ -49,7 +49,7 @@ public class UnApprovedExpList extends AppCompatActivity {
     List<SQLHelper.ExpenseInfo> list = new ArrayList<>();
     ArrayAdapter<SQLHelper.GodownInfo> adapter;
     UnverifiedExpenseAdapter expAdapter;
-    Button btnSelect;
+    Button btnSelect, btnApprove;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,7 +67,7 @@ public class UnApprovedExpList extends AppCompatActivity {
         etDateTo = findViewById(R.id.etToDateU);
         rvExpenses = findViewById(R.id.rvExpensesU);
         btnSelect = findViewById(R.id.btnSelect);
-
+        btnApprove = findViewById(R.id.btnApprove);
 
         ArrayAdapter<CharSequence> adapterExpType = ArrayAdapter.createFromResource(
                 this,
@@ -97,6 +97,22 @@ public class UnApprovedExpList extends AppCompatActivity {
                 btnSelect.setText("Select All");
             }
             expAdapter.notifyDataSetChanged();
+        });
+        btnApprove.setOnClickListener(v->{
+            String selectedExpenseSno="";
+            int noOfExpenses=0;
+            for (SQLHelper.ExpenseInfo item : list) {
+                if(item.isSelected) {
+                    if(!selectedExpenseSno.equalsIgnoreCase(""))
+                        selectedExpenseSno+=",";
+                    selectedExpenseSno += ""+item.getSno();
+                    noOfExpenses++;
+                }
+            }
+            if(noOfExpenses>0)
+                approveExpenses(selectedExpenseSno);
+            else
+                toast("Select atleast 1 expense to approve");
         });
     }
     private void setupDatePicker(EditText et) {
@@ -174,6 +190,41 @@ public class UnApprovedExpList extends AppCompatActivity {
             ex.printStackTrace();
         }
     }
+    private void approveExpenses(String expenses) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("expSnoList", expenses);
+
+            JsonObjectRequest req = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIHelper.APPROVE_EXPENSE,
+                    json,
+                    response -> {
+                        try {
+                            JSONObject d = response.getJSONObject("d");
+                            if(d.getBoolean("valid")) {
+                                toast(d.getString("message"));
+                                loadReport();
+                            } else
+                                throw new Exception(d.getString("message"));
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            toast(e.getMessage());
+                        }
+                    },
+                    error -> Toast.makeText(this, "Failed to Approve Expenses", Toast.LENGTH_SHORT).show()
+            );
+
+            Volley.newRequestQueue(this).add(req);
+        }
+        catch (JSONException ex){
+            ex.printStackTrace();
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
 
     public void GetExpensesReport(View v){
         try{
@@ -201,6 +252,9 @@ public class UnApprovedExpList extends AppCompatActivity {
         pd.setCancelable(false);
         pd.show();
         try {
+            btnSelect.setText("Select All");
+            btnSelect.setVisibility(View.GONE);
+            btnApprove.setVisibility(View.GONE);
             SharedPreferences prefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
 
             SQLHelper.GodownInfo selected = (SQLHelper.GodownInfo) spGodown.getSelectedItem();
@@ -259,6 +313,8 @@ public class UnApprovedExpList extends AppCompatActivity {
                                     ei.setSelected(false);
                                     list.add(ei);
                                 }
+                                btnSelect.setVisibility(View.VISIBLE);
+                                btnApprove.setVisibility(View.VISIBLE);
                                 rvExpenses.setLayoutManager(new LinearLayoutManager(this));
                                 expAdapter = new UnverifiedExpenseAdapter();
                                 rvExpenses.setAdapter(expAdapter);
@@ -305,7 +361,7 @@ public class UnApprovedExpList extends AppCompatActivity {
 
             VH(View v) {
                 super(v);
-                godownName = findViewById(R.id.txtGodown);
+                godownName = v.findViewById(R.id.txtGodown);
                 llExpense = v.findViewById(R.id.llExpenses);
                 llInner = v.findViewById(R.id.llInner);
                 name = v.findViewById(R.id.txtName);
@@ -324,7 +380,8 @@ public class UnApprovedExpList extends AppCompatActivity {
         }
 
         @Override
-        public void onBindViewHolder(UnverifiedExpenseAdapter.VH h, int i) {
+        public void onBindViewHolder(UnverifiedExpenseAdapter.VH h, int i)
+        {
             try {
                 SQLHelper.ExpenseInfo obj = list.get(i);
 
@@ -349,7 +406,7 @@ public class UnApprovedExpList extends AppCompatActivity {
                         .filter(g -> g.getSno() == obj.getGodownNo())
                         .map(g -> g.getName())
                         .findFirst()
-                        .orElse("");
+                        .orElse("---"+obj.getGodownNo());
                 h.godownName.setText(gName);
                 h.name.setText(obj.getExpenseName());
                 h.amount.setText("₹ " + obj.getExpenseAmount());

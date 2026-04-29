@@ -49,13 +49,14 @@ import java.util.List;
 import java.util.Locale;
 
 public class GetExpenses extends AppCompatActivity {
-    Spinner spStatus, spExpenseType;
+    Spinner spStatus, spExpenseType, spGodown;
     String[] statuses = {"-", "Posted", "Approved", "Marg Entry Done"};
     EditText etDateFrom, etDateTo;
     RecyclerView rvExpenses;
     FloatingActionButton fabPdf;
     FloatingActionButton fabExcel;
-
+    LinearLayout llFilterSpinner;
+    ArrayAdapter<SQLHelper.GodownInfo> godownAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,14 +68,19 @@ public class GetExpenses extends AppCompatActivity {
 //            return insets;
 //        });
 
+        llFilterSpinner = findViewById(R.id.llFilterSpinner);
         spStatus = findViewById(R.id.spStatus);
         spExpenseType = findViewById(R.id.spExpenseType);
+        spGodown = findViewById(R.id.spGodown);
         etDateFrom = findViewById(R.id.etFromDate);
         etDateTo = findViewById(R.id.etToDate);
         rvExpenses = findViewById(R.id.rvExpenses);
 
         fabPdf = findViewById(R.id.fabDownloadPdf);
         fabExcel = findViewById(R.id.fabDownloadExcel);
+
+
+
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item, statuses);
@@ -97,6 +103,21 @@ public class GetExpenses extends AppCompatActivity {
         etDateFrom.setText(sdf.format(new Date()));
         etDateTo.setText(sdf.format(new Date()));
         godownsList = new ArrayList<>();
+
+        SharedPreferences prefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        String role = prefs.getString("usertype","");
+        LinearLayout.LayoutParams llFParams = (LinearLayout.LayoutParams)llFilterSpinner.getLayoutParams();
+        if(role.equals("ADMIN")){
+            spGodown.setVisibility(View.VISIBLE);
+            llFParams.weight=3;
+            llFilterSpinner.setLayoutParams(llFParams);
+            loadGodowns();
+        }
+        else {
+            spGodown.setVisibility(View.GONE);
+            llFParams.weight = 2;
+            llFilterSpinner.setLayoutParams(llFParams);
+        }
 
         fabPdf.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -123,6 +144,65 @@ public class GetExpenses extends AppCompatActivity {
         });
 
     }
+
+    private void loadGodowns() {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("godownId", 0);
+
+            JsonObjectRequest req = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIHelper.GET_GODOWNS, // same API gives godowns
+                    json,
+                    response -> {
+                        try {
+                            JSONObject d = response.getJSONObject("d");
+                            JSONArray arr = d.getJSONArray("godowns");
+
+                            godownsList.clear();
+
+                            // Default option
+                            SQLHelper.GodownInfo def = new SQLHelper.GodownInfo();
+                            def.sno = 0;
+                            def.name = "Select Godown";
+                            godownsList.add(def);
+
+                            for (int i = 0; i < arr.length(); i++) {
+                                JSONObject o = arr.getJSONObject(i);
+
+                                SQLHelper.GodownInfo g = new SQLHelper.GodownInfo();
+                                g.sno = o.getInt("sno");
+                                g.name = o.getString("name");
+
+                                godownsList.add(g);
+                            }
+
+                            godownAdapter = new ArrayAdapter<>(this,
+                                    android.R.layout.simple_spinner_item,
+                                    godownsList);
+
+                            godownAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                            spGodown.setAdapter(godownAdapter);
+                            loadReport();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    },
+                    error -> Toast.makeText(this, "Failed to load godowns", Toast.LENGTH_SHORT).show()
+            );
+
+            Volley.newRequestQueue(this).add(req);
+        }
+        catch (JSONException ex){
+            ex.printStackTrace();
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -147,18 +227,12 @@ public class GetExpenses extends AppCompatActivity {
                 String gName = godownsList.stream()
                     .filter(g -> {
                         try {
-                            return g.getInt("sno") == e.getInt("godownno");
+                            return g.getSno() == e.getInt("godownno");
                         } catch (JSONException ex) {
                             throw new RuntimeException(ex);
                         }
                     })
-                    .map(g -> {
-                        try {
-                            return g.getString("name");
-                        } catch (JSONException ex) {
-                            throw new RuntimeException(ex);
-                        }
-                    })
+                    .map(g -> g.getName())
                     .findFirst()
                     .orElse("");
 
@@ -211,18 +285,12 @@ public class GetExpenses extends AppCompatActivity {
                 String gName = godownsList.stream()
                         .filter(g -> {
                             try {
-                                return g.getInt("sno") == e.getInt("godownno");
+                                return g.getSno() == e.getInt("godownno");
                             } catch (JSONException ex) {
                                 throw new RuntimeException(ex);
                             }
                         })
-                        .map(g -> {
-                            try {
-                                return g.getString("name");
-                            } catch (JSONException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        })
+                        .map(g -> g.getName())
                         .findFirst()
                         .orElse("");
                 table.addCell(gName);
@@ -295,7 +363,7 @@ public class GetExpenses extends AppCompatActivity {
         }
     }
 
-    List<JSONObject> godownsList;
+    List<SQLHelper.GodownInfo> godownsList;
     private void loadReport() {
         ProgressDialog pd=new ProgressDialog(this);
         pd.setTitle("Please Wait . . .");
@@ -306,6 +374,12 @@ public class GetExpenses extends AppCompatActivity {
 
             int godownNo = prefs.getInt("godownNo", 0);
             int uno = prefs.getInt("sno", 0);
+
+            if(prefs.getString("usertype","").equals("ADMIN")){
+                SQLHelper.GodownInfo selected = (SQLHelper.GodownInfo) spGodown.getSelectedItem();
+                godownNo = (selected != null) ? selected.sno : 0;
+                uno=0;
+            }
 
             String fromDate = etDateFrom.getText().toString();
             String toDate = etDateTo.getText().toString();
@@ -323,13 +397,14 @@ public class GetExpenses extends AppCompatActivity {
             } catch (Exception e) {
                 toast(e.getMessage());
             }
-
+            System.out.println(json.toString());
             JsonObjectRequest req = new JsonObjectRequest(
                     Request.Method.POST,
                     APIHelper.GET_EXPENSE_REPORT,
                     json,
                     response -> {
                         try {
+                            System.out.println(response);
                             JSONObject d = response.getJSONObject("d");
 
                             if (!d.getBoolean("valid")) {
@@ -342,11 +417,6 @@ public class GetExpenses extends AppCompatActivity {
                                 List<JSONObject> list = new ArrayList<>();
                                 for (int i = 0; i < arr.length(); i++) {
                                     list.add(arr.getJSONObject(i));
-                                }
-
-                                JSONArray arrGod = d.getJSONArray("godowns");
-                                for (int i = 0; i < arrGod.length(); i++) {
-                                    godownsList.add(arrGod.getJSONObject(i));
                                 }
 
                                 fabPdf.setVisibility(View.VISIBLE);
@@ -436,18 +506,12 @@ public class GetExpenses extends AppCompatActivity {
                 String gName = godownsList.stream()
                         .filter(g -> {
                             try {
-                                return g.getInt("sno") == obj.getInt("godownno");
+                                return g.getSno() == obj.getInt("godownno");
                             } catch (JSONException ex) {
                                 throw new RuntimeException(ex);
                             }
                         })
-                        .map(g -> {
-                            try {
-                                return g.getString("name");
-                            } catch (JSONException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        })
+                        .map(g -> g.getName())
                         .findFirst()
                         .orElse("");
                 h.godownName.setText(gName);

@@ -1,0 +1,495 @@
+package in.co.sagarfood.sagarexpense;
+
+import android.app.DatePickerDialog;
+import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.android.volley.Request;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+public class GetIncomes extends AppCompatActivity {
+    Spinner spGodown;
+    EditText etDateFrom, etDateTo;
+    RecyclerView rvIncomes;
+    FloatingActionButton fabPdf;
+    FloatingActionButton fabExcel;
+    ArrayAdapter<SQLHelper.GodownInfo> godownAdapter;
+    List<SQLHelper.GodownInfo> godownsList;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        //EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_get_incomes);
+//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+//            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+//            return insets;
+//        });
+        spGodown = findViewById(R.id.spIncomeGodown);
+        etDateFrom = findViewById(R.id.etIncomeFromDate);
+        etDateTo = findViewById(R.id.etIncomeToDate);
+        rvIncomes = findViewById(R.id.rvIncomes);
+
+        fabPdf = findViewById(R.id.fabDownloadIncomePdf);
+        fabExcel = findViewById(R.id.fabDownloadIncomeExcel);
+
+        godownsList = new ArrayList<>();
+
+        setupDatePicker(etDateFrom);
+        setupDatePicker(etDateTo);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        etDateFrom.setText(sdf.format(new Date()));
+        etDateTo.setText(sdf.format(new Date()));
+
+        loadGodowns();
+
+
+        fabPdf.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.setType("application/pdf");
+                intent.putExtra(Intent.EXTRA_TITLE, "IncomeReport_" + System.currentTimeMillis() + ".pdf");
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(intent, 101);
+                //generatePdfReport();
+            }
+        });
+
+        fabExcel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                intent.setType("text/csv");
+                intent.putExtra(Intent.EXTRA_TITLE, "IncomeReport_" + System.currentTimeMillis() + ".csv");
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                startActivityForResult(intent, 102);
+                //generateExcelReport();
+            }
+        });
+
+    }
+
+
+    private void setupDatePicker(EditText et) {
+        et.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+
+            DatePickerDialog dp = new DatePickerDialog(this,
+                    (view, y, m, d) -> {
+                        String date = y + "-" +
+                                String.format("%02d", m + 1) + "-" +
+                                String.format("%02d", d);
+                        et.setText(date);
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)
+            );
+
+            dp.getDatePicker().setMaxDate(System.currentTimeMillis()); // no future
+            dp.show();
+        });
+    }
+
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode != RESULT_OK || data == null) return;
+
+        if (requestCode == 101) {
+            //writePdf(data.getData());
+            exportTablePdfToUri(data.getData());
+        }
+        if (requestCode == 102) {
+            writeCsv(data.getData());
+        }
+    }
+    private void writeCsv(Uri uri) {
+        try (OutputStream os = getContentResolver().openOutputStream(uri);
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os)))
+        {
+            writer.write("Godown Name,Income Date,Amount,Remarks,Entry By\n");
+            List<JSONObject> list = ((GetIncomes.IncomesAdapter) rvIncomes.getAdapter()).getData();
+            double amountTtl=0;
+            for (JSONObject e : list) {
+                String gName ="-";
+                if(e.getInt("godownNo")>0)
+                gName = godownsList.stream()
+                        .filter(g -> {
+                            try {
+                                return g.getSno() == e.getInt("godownNo");
+                            } catch (JSONException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        })
+                        .map(g -> g.getName())
+                        .findFirst()
+                        .orElse("");
+
+                writer.write(
+                        gName + "," +
+                                e.getString("incomeDate") + "," +
+                                e.getDouble("amount") + "," +
+                                (e.getString("remarks").replaceAll(",","|")) + "," +
+                                e.getString("entryByName") + "\n"
+                );
+                amountTtl+=e.getDouble("amount");
+            }
+            writer.write(",Total Amount,"+amountTtl+",,");
+
+            writer.flush();
+            Toast.makeText(this, "Excel (CSV) saved to Downloads", Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "CSV write failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void exportTablePdfToUri(Uri uri) {
+        try {
+            RecyclerView.Adapter adapter = rvIncomes.getAdapter();
+            if (!(adapter instanceof GetIncomes.IncomesAdapter)) return;
+
+            List<JSONObject> list = ((GetIncomes.IncomesAdapter) adapter).getData();
+
+            OutputStream os = getContentResolver().openOutputStream(uri);
+            if (os == null) throw new Exception("Stream is null");
+
+            PdfWriter writer = new PdfWriter(os);
+            com.itextpdf.kernel.pdf.PdfDocument pdfDoc = new com.itextpdf.kernel.pdf.PdfDocument(writer);
+            Document document = new Document(pdfDoc);
+
+            document.add(new Paragraph("Income Report").setBold().setFontSize(12));
+            document.setFontSize(10);
+            Table table = new Table(5);
+
+            table.addHeaderCell("Godown Name");
+            table.addHeaderCell("Income Date");
+            table.addHeaderCell("Amount");
+            table.addHeaderCell("Remarks");
+            table.addHeaderCell("Entry By");
+            double ttlAmount = 0;
+            for (JSONObject e : list) {
+                String gName = "";
+                if(e.getInt("godownNo")>0)
+                gName = godownsList.stream()
+                        .filter(g -> {
+                            try {
+                                return g.getSno() == e.getInt("godownNo");
+                            } catch (JSONException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        })
+                        .map(g -> g.getName())
+                        .findFirst()
+                        .orElse("");
+                table.addCell(gName);
+                table.addCell(e.getString("incomeDate"));
+                table.addCell(String.valueOf(e.getDouble("amount")));
+                table.addCell(e.getString("remarks"));
+                table.addCell(e.getString("entryByName"));
+                ttlAmount+=e.getDouble("amount");
+            }
+            table.addCell("");
+            table.addCell("Total Amount");
+            table.addCell(String.valueOf(ttlAmount));
+            table.addCell("");
+            table.addCell("");
+
+            document.add(table);
+            document.close();
+            os.close();
+
+            Toast.makeText(this, "PDF saved in Downloads", Toast.LENGTH_LONG).show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "PDF export failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
+    private void loadGodowns() {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("godownId", 0);
+
+            JsonObjectRequest req = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIHelper.GET_GODOWNS, // same API gives godowns
+                    json,
+                    response -> {
+                        try {
+                            System.out.println(response);
+                            JSONObject d = response.getJSONObject("d");
+                            JSONArray arr = d.getJSONArray("godowns");
+
+                            godownsList.clear();
+
+                            // Default option
+                            SQLHelper.GodownInfo def = new SQLHelper.GodownInfo();
+                            def.sno = 0;
+                            def.name = "Select Godown";
+                            godownsList.add(def);
+
+                            for (int i = 0; i < arr.length(); i++) {
+                                JSONObject o = arr.getJSONObject(i);
+
+                                SQLHelper.GodownInfo g = new SQLHelper.GodownInfo();
+                                g.sno = o.getInt("sno");
+                                g.name = o.getString("name");
+
+                                godownsList.add(g);
+                            }
+
+                            godownAdapter = new ArrayAdapter<>(this,
+                                    android.R.layout.simple_spinner_item,
+                                    godownsList);
+
+                            godownAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                            spGodown.setAdapter(godownAdapter);
+                            loadIncomeReport();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    },
+                    error -> Toast.makeText(this, "Failed to load godowns", Toast.LENGTH_SHORT).show()
+            );
+
+            Volley.newRequestQueue(this).add(req);
+        }
+        catch (JSONException ex){
+            ex.printStackTrace();
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+    public void GetIncomesReport(View v){
+        try{
+            String fromDate = etDateFrom.getText().toString();
+            String toDate = etDateTo.getText().toString();
+
+            if (fromDate.isEmpty() || toDate.isEmpty()) {
+                toast("Both dates required");
+                return;
+            }
+
+            if (fromDate.compareTo(toDate) > 0) {
+                toast("From date cannot be after To date");
+                return;
+            }
+            loadIncomeReport();
+        }
+        catch (Exception ex){
+            toast(ex.getMessage());
+        }
+    }
+
+
+    private void loadIncomeReport() {
+        ProgressDialog pd=new ProgressDialog(this);
+        pd.setTitle("Please Wait . . .");
+        pd.setCancelable(false);
+        pd.show();
+        try {
+            SharedPreferences prefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+
+            SQLHelper.GodownInfo selected = (SQLHelper.GodownInfo) spGodown.getSelectedItem();
+            int godownNo = (selected != null) ? selected.sno : 0;
+            int uid = 0;
+            String fromDate = etDateFrom.getText().toString();
+            String toDate = etDateTo.getText().toString();
+
+            JSONObject json = new JSONObject();
+            try {
+                json.put("uid", uid);
+                json.put("godownNo", godownNo);
+                json.put("dateFrom", fromDate);
+                json.put("dateTo", toDate);
+            } catch (Exception e) {
+                toast(e.getMessage());
+            }
+            System.out.println(json.toString());
+            JsonObjectRequest req = new JsonObjectRequest(
+                    Request.Method.POST,
+                    APIHelper.GET_INCOMES_LIST,
+                    json,
+                    response -> {
+                        try {
+                            System.out.println(response);
+                            JSONObject d = response.getJSONObject("d");
+
+                            if (!d.getBoolean("valid")) {
+                                toast("Error");
+                                return;
+                            }
+
+                            JSONArray arr = d.getJSONArray("data");
+                            if(arr.length()>0) {
+                                List<JSONObject> list = new ArrayList<>();
+                                for (int i = 0; i < arr.length(); i++) {
+                                    list.add(arr.getJSONObject(i));
+                                }
+
+                                fabPdf.setVisibility(View.VISIBLE);
+                                fabExcel.setVisibility(View.VISIBLE);
+                                rvIncomes.setLayoutManager(new LinearLayoutManager(this));
+                                rvIncomes.setAdapter(new IncomesAdapter(list));
+                            }
+                            else{
+                                toast("No data found");
+                                rvIncomes.setAdapter(null);
+                                fabPdf.setVisibility(View.GONE);
+                                fabExcel.setVisibility(View.GONE);
+                            }
+                            pd.dismiss();
+
+                        }
+                        catch (Exception e) {
+                            e.printStackTrace();
+                            pd.dismiss();
+                        }
+                    },
+                    error -> {
+                        toast("Failed to load report");
+                        pd.dismiss();
+                    }
+            );
+
+            Volley.newRequestQueue(this).add(req);
+        }
+        catch (Exception ex){
+            pd.dismiss();
+            toast(ex.getMessage());
+        }
+    }
+
+
+    class IncomesAdapter extends RecyclerView.Adapter<GetIncomes.IncomesAdapter.VH> {
+
+        List<JSONObject> list;
+
+        IncomesAdapter(List<JSONObject> list) {
+            this.list = list;
+        }
+        public List<JSONObject> getData(){
+            return list;
+        }
+
+        class VH extends RecyclerView.ViewHolder {
+            TextView sno, incDate, incAmt, incGodown, incRemarks;
+            LinearLayout llIncDetails;
+
+            VH(View v) {
+                super(v);
+                sno = v.findViewById(R.id.tvIncomeSno);
+                incDate = v.findViewById(R.id.tvIncomeDate);
+                incAmt = v.findViewById(R.id.tvIncomeAmount);
+                incGodown = v.findViewById(R.id.tvIncomeGodownName);
+                incRemarks = v.findViewById(R.id.tvIncomeRemarks);
+                llIncDetails = v.findViewById(R.id.llIncomeDetails);
+            }
+        }
+
+        @Override
+        public GetIncomes.IncomesAdapter.VH onCreateViewHolder(ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.helper_incomes_list, parent, false);
+            return new GetIncomes.IncomesAdapter.VH(v);
+        }
+
+        @Override
+        public void onBindViewHolder(GetIncomes.IncomesAdapter.VH h, int i) {
+            try {
+                JSONObject obj = list.get(i);
+
+                String gName = "-";
+                if(obj.getInt("godownNo")>0)
+                gName = godownsList.stream()
+                        .filter(g -> {
+                            try {
+                                return g.getSno() == obj.getInt("godownNo");
+                            } catch (JSONException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        })
+                        .map(g -> g.getName())
+                        .findFirst()
+                        .orElse("");
+                h.incGodown.setText(gName);
+                h.sno.setText((i+1)+"");
+                h.incAmt.setText("₹ " + obj.getDouble("amount"));
+                h.incDate.setText(obj.getString("incomeDate"));
+                h.incRemarks.setText(obj.getString("remarks"));
+
+                if(i%2==0) {
+                    h.sno.setBackgroundColor(getResources().getColor(R.color.white));
+                    h.llIncDetails.setBackgroundColor(getResources().getColor(R.color.light_grey));
+                }
+                else {
+                    h.sno.setBackgroundColor(getResources().getColor(R.color.light_grey));
+                    h.llIncDetails.setBackgroundColor(getResources().getColor(R.color.white));
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public int getItemCount() {
+            return list.size();
+        }
+    }
+
+
+    private void toast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+}

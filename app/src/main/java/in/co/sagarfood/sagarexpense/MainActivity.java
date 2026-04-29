@@ -122,16 +122,18 @@ public class MainActivity extends AppCompatActivity {
 
                                 if(user.getUsertype().equals("ADMIN")) {
                                     Intent i = new Intent(MainActivity.this, AdminDashboard.class);
-                                    finishAffinity();
                                     startActivity(i);
+                                    finishAffinity();
                                 } else if(user.getUsertype().equals("EXPENSER")){
                                     Intent i = new Intent(MainActivity.this, ExpenserDashboard.class);
-                                    finishAffinity();
                                     startActivity(i);
+                                    finishAffinity();
                                 } else if(user.getUsertype().equals("MARG USER")) {
                                     Intent i = new Intent(MainActivity.this, MargUserDashboard.class);
-                                    finishAffinity();
                                     startActivity(i);
+                                    finishAffinity();
+                                } else{
+                                    Toast.makeText(MainActivity.this, "Invalid user!", Toast.LENGTH_SHORT).show();
                                 }
 
                                 Toast.makeText(MainActivity.this, "Login successful!", Toast.LENGTH_SHORT).show();
