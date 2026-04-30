@@ -10,8 +10,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -48,7 +48,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class GetIncomes extends AppCompatActivity {
+public class GetPandLReport extends AppCompatActivity {
     Spinner spGodown;
     EditText etDateFrom, etDateTo;
     RecyclerView rvIncomes;
@@ -60,19 +60,19 @@ public class GetIncomes extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_get_incomes);
+        setContentView(R.layout.activity_get_pand_lreport);
 //        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
 //            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
 //            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
 //            return insets;
 //        });
-        spGodown = findViewById(R.id.spIncomeGodown);
-        etDateFrom = findViewById(R.id.etIncomeFromDate);
-        etDateTo = findViewById(R.id.etIncomeToDate);
-        rvIncomes = findViewById(R.id.rvIncomes);
+        spGodown = findViewById(R.id.spPLGodown);
+        etDateFrom = findViewById(R.id.etPLFromDate);
+        etDateTo = findViewById(R.id.etPLToDate);
+        rvIncomes = findViewById(R.id.rvPL);
 
-        fabPdf = findViewById(R.id.fabDownloadIncomePdf);
-        fabExcel = findViewById(R.id.fabDownloadIncomeExcel);
+        fabPdf = findViewById(R.id.fabDownloadPLPdf);
+        fabExcel = findViewById(R.id.fabDownloadPLExcel);
 
         godownsList = new ArrayList<>();
 
@@ -90,7 +90,7 @@ public class GetIncomes extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.setType("application/pdf");
-                intent.putExtra(Intent.EXTRA_TITLE, "IncomeReport_" + System.currentTimeMillis() + ".pdf");
+                intent.putExtra(Intent.EXTRA_TITLE, "PandLReport_" + System.currentTimeMillis() + ".pdf");
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 startActivityForResult(intent, 101);
                 //generatePdfReport();
@@ -102,16 +102,13 @@ public class GetIncomes extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 intent.setType("text/csv");
-                intent.putExtra(Intent.EXTRA_TITLE, "IncomeReport_" + System.currentTimeMillis() + ".csv");
+                intent.putExtra(Intent.EXTRA_TITLE, "PandLReport_" + System.currentTimeMillis() + ".csv");
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 startActivityForResult(intent, 102);
                 //generateExcelReport();
             }
         });
-
     }
-
-
     private void setupDatePicker(EditText et) {
         et.setOnClickListener(v -> {
             Calendar cal = Calendar.getInstance();
@@ -134,7 +131,6 @@ public class GetIncomes extends AppCompatActivity {
     }
 
 
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -152,34 +148,43 @@ public class GetIncomes extends AppCompatActivity {
         try (OutputStream os = getContentResolver().openOutputStream(uri);
              BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os)))
         {
-            writer.write("Godown Name,Income Date,Amount,Remarks,Entry By\n");
-            List<JSONObject> list = ((GetIncomes.IncomesAdapter) rvIncomes.getAdapter()).getData();
-            double amountTtl=0;
+            writer.write("Date,Income,Expense,Godown,Status\n");
+            List<JSONObject> list = ((GetPandLReport.PLAdapter) rvIncomes.getAdapter()).getData();
+            double ttlInc=0, ttlExp = 0;
             for (JSONObject e : list) {
                 String gName ="-";
                 if(e.getInt("godownNo")>0)
                     gName = godownsList.stream()
-                        .filter(g -> {
-                            try {
-                                return g.getSno() == e.getInt("godownNo");
-                            } catch (JSONException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        })
-                        .map(g -> g.getName())
-                        .findFirst()
-                        .orElse("");
-
+                            .filter(g -> {
+                                try {
+                                    return g.getSno() == e.getInt("godownNo");
+                                } catch (JSONException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            })
+                            .map(g -> g.getName())
+                            .findFirst()
+                            .orElse("");
+                String status = "Loss";
+                double inc = e.getDouble("incomeAmount");
+                double exp = e.getDouble("expenseAmount");
+                if(inc>exp)
+                    status = "Profit";
+                else if(inc<exp)
+                    status = "Loss";
+                else
+                    status = "Equal";
                 writer.write(
+                    e.getString("Date") + "," +
+                        e.getDouble("incomeAmount") + "," +
+                        e.getString("expenseAmount") + "," +
                         gName + "," +
-                                e.getString("incomeDate") + "," +
-                                e.getDouble("amount") + "," +
-                                (e.getString("remarks").replaceAll(",","|")) + "," +
-                                e.getString("entryByName") + "\n"
-                );
-                amountTtl+=e.getDouble("amount");
+                        status + "\n"
+                    );
+                ttlInc+=e.getDouble("incomeAmount");
+                ttlExp+=e.getDouble("expenseAmount");
             }
-            writer.write(",Total Amount,"+amountTtl+",,");
+            writer.write(","+ttlInc+","+ttlExp+",,"+((ttlInc>ttlExp)?"Profit":((ttlInc<ttlExp)?"Loss":"Equal")));
 
             writer.flush();
             Toast.makeText(this, "Excel (CSV) saved to Downloads", Toast.LENGTH_SHORT).show();
@@ -192,9 +197,9 @@ public class GetIncomes extends AppCompatActivity {
     private void exportTablePdfToUri(Uri uri) {
         try {
             RecyclerView.Adapter adapter = rvIncomes.getAdapter();
-            if (!(adapter instanceof GetIncomes.IncomesAdapter)) return;
+            if (!(adapter instanceof GetPandLReport.PLAdapter)) return;
 
-            List<JSONObject> list = ((GetIncomes.IncomesAdapter) adapter).getData();
+            List<JSONObject> list = ((GetPandLReport.PLAdapter) adapter).getData();
 
             OutputStream os = getContentResolver().openOutputStream(uri);
             if (os == null) throw new Exception("Stream is null");
@@ -203,42 +208,54 @@ public class GetIncomes extends AppCompatActivity {
             com.itextpdf.kernel.pdf.PdfDocument pdfDoc = new com.itextpdf.kernel.pdf.PdfDocument(writer);
             Document document = new Document(pdfDoc);
 
-            document.add(new Paragraph("Income Report").setBold().setFontSize(12));
+            document.add(new Paragraph("P and L Report").setBold().setFontSize(12));
             document.setFontSize(10);
             Table table = new Table(5);
 
+            table.addHeaderCell("Date");
+            table.addHeaderCell("Income");
+            table.addHeaderCell("Expense");
             table.addHeaderCell("Godown Name");
-            table.addHeaderCell("Income Date");
-            table.addHeaderCell("Amount");
-            table.addHeaderCell("Remarks");
-            table.addHeaderCell("Entry By");
-            double ttlAmount = 0;
+            table.addHeaderCell("Status");
+            double ttlInc = 0, ttlExp = 0;
             for (JSONObject e : list) {
                 String gName = "";
                 if(e.getInt("godownNo")>0)
                     gName = godownsList.stream()
-                        .filter(g -> {
-                            try {
-                                return g.getSno() == e.getInt("godownNo");
-                            } catch (JSONException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        })
-                        .map(g -> g.getName())
-                        .findFirst()
-                        .orElse("");
+                            .filter(g -> {
+                                try {
+                                    return g.getSno() == e.getInt("godownNo");
+                                } catch (JSONException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            })
+                            .map(g -> g.getName())
+                            .findFirst()
+                            .orElse("");
+
+                String status = "Loss";
+                double inc = e.getDouble("incomeAmount");
+                double exp = e.getDouble("expenseAmount");
+                if(inc>exp)
+                    status = "Profit";
+                else if(inc<exp)
+                    status = "Loss";
+                else
+                    status = "Equal";
+
+                table.addCell(e.getString("Date"));
+                table.addCell(String.valueOf(e.getDouble("incomeAmount")));
+                table.addCell(e.getString("expenseAmount"));
                 table.addCell(gName);
-                table.addCell(e.getString("incomeDate"));
-                table.addCell(String.valueOf(e.getDouble("amount")));
-                table.addCell(e.getString("remarks"));
-                table.addCell(e.getString("entryByName"));
-                ttlAmount+=e.getDouble("amount");
+                table.addCell(status);
+                ttlInc+=e.getDouble("incomeAmount");
+                ttlExp+=e.getDouble("expenseAmount");
             }
             table.addCell("");
-            table.addCell("Total Amount");
-            table.addCell(String.valueOf(ttlAmount));
+            table.addCell(String.valueOf(ttlInc));
+            table.addCell(String.valueOf(ttlExp));
             table.addCell("");
-            table.addCell("");
+            table.addCell((ttlInc>ttlExp)?"Profit":((ttlInc<ttlExp)?"Loss":"Equal"));
 
             document.add(table);
             document.close();
@@ -251,7 +268,6 @@ public class GetIncomes extends AppCompatActivity {
             Toast.makeText(this, "PDF export failed", Toast.LENGTH_SHORT).show();
         }
     }
-
 
 
     private void loadGodowns() {
@@ -293,7 +309,7 @@ public class GetIncomes extends AppCompatActivity {
 
                             godownAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                             spGodown.setAdapter(godownAdapter);
-                            loadIncomeReport();
+                            loadPLReport();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -310,7 +326,7 @@ public class GetIncomes extends AppCompatActivity {
             ex.printStackTrace();
         }
     }
-    public void GetIncomesReport(View v){
+    public void GetPLReport(View v){
         try{
             String fromDate = etDateFrom.getText().toString();
             String toDate = etDateTo.getText().toString();
@@ -324,15 +340,14 @@ public class GetIncomes extends AppCompatActivity {
                 toast("From date cannot be after To date");
                 return;
             }
-            loadIncomeReport();
+            loadPLReport();
         }
         catch (Exception ex){
             toast(ex.getMessage());
         }
     }
 
-
-    private void loadIncomeReport() {
+    private void loadPLReport() {
         ProgressDialog pd=new ProgressDialog(this);
         pd.setTitle("Please Wait . . .");
         pd.setCancelable(false);
@@ -358,10 +373,11 @@ public class GetIncomes extends AppCompatActivity {
             System.out.println(json.toString());
             JsonObjectRequest req = new JsonObjectRequest(
                     Request.Method.POST,
-                    APIHelper.GET_INCOMES_LIST,
+                    APIHelper.GET_INCOME_AND_EXPENSES,
                     json,
                     response -> {
                         try {
+                            pd.dismiss();
                             System.out.println(response);
                             JSONObject d = response.getJSONObject("d");
 
@@ -380,7 +396,7 @@ public class GetIncomes extends AppCompatActivity {
                                 fabPdf.setVisibility(View.VISIBLE);
                                 fabExcel.setVisibility(View.VISIBLE);
                                 rvIncomes.setLayoutManager(new LinearLayoutManager(this));
-                                rvIncomes.setAdapter(new IncomesAdapter(list));
+                                rvIncomes.setAdapter(new GetPandLReport.PLAdapter(list));
                             }
                             else{
                                 toast("No data found");
@@ -388,7 +404,6 @@ public class GetIncomes extends AppCompatActivity {
                                 fabPdf.setVisibility(View.GONE);
                                 fabExcel.setVisibility(View.GONE);
                             }
-                            pd.dismiss();
 
                         }
                         catch (Exception e) {
@@ -411,11 +426,11 @@ public class GetIncomes extends AppCompatActivity {
     }
 
 
-    class IncomesAdapter extends RecyclerView.Adapter<GetIncomes.IncomesAdapter.VH> {
+    class PLAdapter extends RecyclerView.Adapter<GetPandLReport.PLAdapter.VH> {
 
         List<JSONObject> list;
 
-        IncomesAdapter(List<JSONObject> list) {
+        PLAdapter(List<JSONObject> list) {
             this.list = list;
         }
         public List<JSONObject> getData(){
@@ -423,58 +438,63 @@ public class GetIncomes extends AppCompatActivity {
         }
 
         class VH extends RecyclerView.ViewHolder {
-            TextView sno, incDate, incAmt, incGodown, incRemarks;
-            LinearLayout llIncDetails;
+            ImageView ivMarker;
+            TextView date, incAmt, expAmt, godown;
+            LinearLayout llRow;
 
             VH(View v) {
                 super(v);
-                sno = v.findViewById(R.id.tvIncomeSno);
-                incDate = v.findViewById(R.id.tvIncomeDate);
-                incAmt = v.findViewById(R.id.tvIncomeAmount);
-                incGodown = v.findViewById(R.id.tvIncomeGodownName);
-                incRemarks = v.findViewById(R.id.tvIncomeRemarks);
-                llIncDetails = v.findViewById(R.id.llIncomeDetails);
+                ivMarker = v.findViewById(R.id.ivPLMarker);
+                date = v.findViewById(R.id.tvPLDate);
+                incAmt = v.findViewById(R.id.tvPLInc);
+                expAmt = v.findViewById(R.id.tvPLExp);
+                godown = v.findViewById(R.id.tvPLGName);
+                llRow = v.findViewById(R.id.llPLRow);
             }
         }
 
         @Override
-        public GetIncomes.IncomesAdapter.VH onCreateViewHolder(ViewGroup parent, int viewType) {
+        public GetPandLReport.PLAdapter.VH onCreateViewHolder(ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.helper_incomes_list, parent, false);
-            return new GetIncomes.IncomesAdapter.VH(v);
+                    .inflate(R.layout.helper_pandl_list, parent, false);
+            return new GetPandLReport.PLAdapter.VH(v);
         }
 
         @Override
-        public void onBindViewHolder(GetIncomes.IncomesAdapter.VH h, int i) {
+        public void onBindViewHolder(GetPandLReport.PLAdapter.VH h, int i) {
             try {
                 JSONObject obj = list.get(i);
 
                 String gName = "-";
                 if(obj.getInt("godownNo")>0)
-                gName = godownsList.stream()
-                        .filter(g -> {
-                            try {
-                                return g.getSno() == obj.getInt("godownNo");
-                            } catch (JSONException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        })
-                        .map(g -> g.getName())
-                        .findFirst()
-                        .orElse("");
-                h.incGodown.setText(gName);
-                h.sno.setText((i+1)+"");
-                h.incAmt.setText("₹ " + obj.getDouble("amount"));
-                h.incDate.setText(obj.getString("incomeDate"));
-                h.incRemarks.setText(obj.getString("remarks"));
+                    gName = godownsList.stream()
+                            .filter(g -> {
+                                try {
+                                    return g.getSno() == obj.getInt("godownNo");
+                                } catch (JSONException ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            })
+                            .map(g -> g.getName())
+                            .findFirst()
+                            .orElse("");
+                h.date.setText(obj.getString("Date"));
+                h.incAmt.setText("₹ " + obj.getDouble("incomeAmount"));
+                h.expAmt.setText("₹ " + obj.getDouble("expenseAmount"));
+                h.godown.setText(gName);
+
+                double incAmt = obj.getDouble("incomeAmount");
+                double expAmt = obj.getDouble("expenseAmount");
+                if(incAmt>=expAmt)
+                    h.ivMarker.setImageDrawable(getResources().getDrawable(R.drawable.ico_up));
+                else
+                    h.ivMarker.setImageDrawable(getResources().getDrawable(R.drawable.ico_down));
 
                 if(i%2==0) {
-                    h.sno.setBackgroundColor(getResources().getColor(R.color.white));
-                    h.llIncDetails.setBackgroundColor(getResources().getColor(R.color.light_grey));
+                    h.llRow.setBackgroundColor(getResources().getColor(R.color.light_grey));
                 }
                 else {
-                    h.sno.setBackgroundColor(getResources().getColor(R.color.light_grey));
-                    h.llIncDetails.setBackgroundColor(getResources().getColor(R.color.white));
+                    h.llRow.setBackgroundColor(getResources().getColor(R.color.white));
                 }
 
             } catch (Exception e) {

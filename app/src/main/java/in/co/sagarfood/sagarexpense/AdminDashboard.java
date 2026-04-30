@@ -87,6 +87,10 @@ public class AdminDashboard extends AppCompatActivity {
             startActivity(new Intent(this, GetExpenses.class));
         });
 
+        findViewById(R.id.btnPLReport).setOnClickListener(v -> {
+            startActivity(new Intent(this, GetPandLReport.class));
+        });
+
         findViewById(R.id.btnLogout).setOnClickListener(v -> logout());
     }
 

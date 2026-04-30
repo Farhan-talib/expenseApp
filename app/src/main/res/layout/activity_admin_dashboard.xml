@@ -108,6 +108,13 @@
         android:layout_marginBottom="8dp"/>
 
     <Button
+        android:id="@+id/btnPLReport"
+        android:text="Get P &amp; L Report"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
         android:id="@+id/btnLogout"
         android:text="Logout"
         android:backgroundTint="#D32F2F"

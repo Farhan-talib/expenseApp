@@ -107,7 +107,7 @@ public class GetExpenses extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
         String role = prefs.getString("usertype","");
         LinearLayout.LayoutParams llFParams = (LinearLayout.LayoutParams)llFilterSpinner.getLayoutParams();
-        if(role.equals("ADMIN")){
+        if(role.equals("ADMIN") || role.equals("MARG USER")){
             spGodown.setVisibility(View.VISIBLE);
             llFParams.weight=3;
             llFilterSpinner.setLayoutParams(llFParams);
@@ -117,6 +117,7 @@ public class GetExpenses extends AppCompatActivity {
             spGodown.setVisibility(View.GONE);
             llFParams.weight = 2;
             llFilterSpinner.setLayoutParams(llFParams);
+            loadReport();
         }
 
         fabPdf.setOnClickListener(new View.OnClickListener() {
@@ -375,7 +376,7 @@ public class GetExpenses extends AppCompatActivity {
             int godownNo = prefs.getInt("godownNo", 0);
             int uno = prefs.getInt("sno", 0);
 
-            if(prefs.getString("usertype","").equals("ADMIN")){
+            if(prefs.getString("usertype","").equals("ADMIN") || prefs.getString("usertype","").equals("MARG USER")){
                 SQLHelper.GodownInfo selected = (SQLHelper.GodownInfo) spGodown.getSelectedItem();
                 godownNo = (selected != null) ? selected.sno : 0;
                 uno=0;
@@ -527,10 +528,14 @@ public class GetExpenses extends AppCompatActivity {
 
 
                 String billPath = obj.getString("supportingBill");
-
-                h.itemView.findViewById(R.id.tvViewBill).setOnClickListener(v -> {
-                    openBillImage(billPath);
-                });
+                if(billPath.equalsIgnoreCase("None") || billPath.equalsIgnoreCase("-"))
+                    h.itemView.findViewById(R.id.tvViewBill).setVisibility(View.GONE);
+                else {
+                    h.itemView.findViewById(R.id.tvViewBill).setVisibility(View.VISIBLE);
+                    h.itemView.findViewById(R.id.tvViewBill).setOnClickListener(v -> {
+                        openBillImage(billPath);
+                    });
+                }
 
 
 
